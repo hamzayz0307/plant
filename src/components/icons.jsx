@@ -36,3 +36,4 @@ export const Balcony = make(<><path d="M4 12h16M4 20h16M6 12v8M10 12v8M14 12v8M1
 export const Pulse = make(<path d="M3 12h4l2-5 4 10 2-5h6" />, { size: 18, sw: 2 });
 export const Link = make(<><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>, { size: 18, sw: 2 });
 export const Bell = make(<><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2Z" /><path d="M10 20a2 2 0 0 0 4 0" /></>, { size: 18, sw: 2 });
+export const Search = make(<><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></>, { size: 22, sw: 2 });

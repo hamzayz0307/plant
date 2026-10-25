@@ -3,7 +3,7 @@
 export const TEXT = {
   en: {
     // Tabs
-    tabGarden: "My Garden", tabScan: "Scan", tabRooms: "Rooms", tabProfile: "Profile",
+    tabGarden: "My Plants", tabScan: "Scan", tabRooms: "Rooms", tabProfile: "Profile",
 
     // Common
     save: "Save", saving: "Saving…", cancel: "Cancel", delete: "Delete", edit: "Edit", back: "Back",
@@ -26,7 +26,7 @@ export const TEXT = {
     newPassword: "New password", setPassword: "Save new password", passwordUpdated: "Password updated",
 
     // Garden
-    gardenTitle: "My Garden",
+    gardenTitle: "My Plants",
     plantCount: n => n === 1 ? "1 plant" : `${n} plants`,
     examplesNote: "These are examples. Scan a plant to start your own garden.",
     waterEvery: d => `Water every ${d} days`,
@@ -211,12 +211,22 @@ export const TEXT = {
     plan: "Plan", planFree: "Free", planPlus: "Plus",
     notifRecheck: n => n === 1 ? "1 plant is due for a follow-up check." : `${n} plants are due for a follow-up check.`,
 
+    // Plant cards
+    myPlants: "My Plants", allPlants: "All your plants",
+    stHealthy: "Healthy", stWater: "Need Water", stAttention: "Need Attention",
+    gStatus: "Status", gNext: "Next Watering",
+    daysUnit: n => n === 1 ? "Day" : "Days",
+    searchPh: "Search your plants", noMatch: "No plants here.",
+    search: "Search", addNew: "Add a plant",
+    lateShort: d => `${d} days late`,
+    checkShort: "Check",
+
     notifTitle: "Yaprak",
     notifBody: n => n === 1 ? "1 plant needs water today." : `${n} plants need water today.`,
   },
 
   tr: {
-    tabGarden: "Bahçem", tabScan: "Tara", tabRooms: "Odalar", tabProfile: "Profil",
+    tabGarden: "Bitkilerim", tabScan: "Tara", tabRooms: "Odalar", tabProfile: "Profil",
 
     save: "Kaydet", saving: "Kaydediliyor…", cancel: "Vazgeç", delete: "Sil", edit: "Düzenle", back: "Geri",
     close: "Kapat", example: "Örnek", none: "Yok",
@@ -236,7 +246,7 @@ export const TEXT = {
     authErrGeneric: "Bir şeyler ters gitti. Bağlantını kontrol edip tekrar dene.",
     newPassword: "Yeni şifre", setPassword: "Yeni şifreyi kaydet", passwordUpdated: "Şifre güncellendi",
 
-    gardenTitle: "Bahçem",
+    gardenTitle: "Bitkilerim",
     plantCount: n => `${n} bitki`,
     examplesNote: "Bunlar örnek bitkiler. Kendi bahçeni başlatmak için bir bitki tara.",
     waterEvery: d => `${d} günde bir sula`,
@@ -411,6 +421,15 @@ export const TEXT = {
     limitSub: "Ücretsiz kontroller ayın 1'inde yenilenir. Sınırsız kontrol ve takip sunan Yaprak Plus yakında.",
     plan: "Plan", planFree: "Ücretsiz", planPlus: "Plus",
     notifRecheck: n => `${n} bitki takip kontrolü bekliyor.`,
+
+    myPlants: "Bitkilerim", allPlants: "Tüm bitkilerin",
+    stHealthy: "Sağlıklı", stWater: "Su istiyor", stAttention: "İlgi istiyor",
+    gStatus: "Durum", gNext: "Sonraki sulama",
+    daysUnit: () => "Gün",
+    searchPh: "Bitkilerinde ara", noMatch: "Burada bitki yok.",
+    search: "Ara", addNew: "Bitki ekle",
+    lateShort: d => `${d} gün gecikti`,
+    checkShort: "Kontrol et",
 
     notifTitle: "Yaprak",
     notifBody: n => `${n} bitki bugün su istiyor.`,
