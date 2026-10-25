@@ -45,9 +45,11 @@ export function exampleAsPlant(ex, lang) {
   };
 }
 
-let demoTurn = 0;
-export function demoIdentify(lang) {
-  const ex = EXAMPLES[demoTurn++ % EXAMPLES.length];
+export function demoIdentify(lang, hash = "") {
+  // Pick by photo fingerprint: the same photo always gives the same demo answer.
+  let n = 0;
+  for (let i = 0; i < hash.length; i++) n = (n * 31 + hash.charCodeAt(i)) >>> 0;
+  const ex = EXAMPLES[n % EXAMPLES.length];
   const p = exampleAsPlant(ex, lang);
   const others = EXAMPLES.filter(e => e !== ex).map(e => exampleAsPlant(e, lang));
   return {

@@ -96,7 +96,7 @@ function createLocalBackend() {
         return normalizeHealth(demoHealth(lang, context));
       }
       await wait(1100, signal);
-      return normalizeIdentify(demoIdentify(lang));
+      return normalizeIdentify(demoIdentify(lang, _photo?.hash));
     },
     async aiUsage() { return null; },
     async healthUsage() {

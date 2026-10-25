@@ -113,7 +113,8 @@ Deno.serve(async (req) => {
             { inline_data: { mime_type: "image/jpeg", data: body.image } },
           ],
         }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.2 },
+        // temperature 0: as repeatable as possible for the same photo
+        generationConfig: { responseMimeType: "application/json", temperature: 0 },
       }),
     });
     if (!res.ok) return json({ error: "ai_failed", status: res.status }, 502);

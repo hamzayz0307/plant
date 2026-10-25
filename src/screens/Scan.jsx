@@ -9,6 +9,21 @@ import * as I from "../components/icons.jsx";
 import { formatDate } from "./PlantDetail.jsx";
 
 let controller = null; // the running scan, so Stop works even after switching tabs
+
+// Remember identifications on this device: the same photo gives the same answer and costs no scan.
+const ID_CACHE = "yaprak.idcache";
+function cachedId(key) {
+  try { return JSON.parse(localStorage.getItem(ID_CACHE) || "{}")[key] || null; } catch { return null; }
+}
+function rememberId(key, result) {
+  try {
+    const all = JSON.parse(localStorage.getItem(ID_CACHE) || "{}");
+    all[key] = result;
+    const keys = Object.keys(all);
+    if (keys.length > 40) delete all[keys[0]];
+    localStorage.setItem(ID_CACHE, JSON.stringify(all));
+  } catch { /* storage full or blocked: just skip the cache */ }
+}
 const WEEK = 7 * 864e5;
 
 export default function Scan() {
@@ -69,8 +84,13 @@ export default function Scan() {
         setScan(s => ({ ...s, status: "result", result: r, savedTo, recheckAt }));
         actions.refreshHealthUsage();
       } else {
-        const r = await backend.ai("identify", photo, lang, ctl.signal);
-        if (ctl.signal.aborted) return;
+        const key = `${backend.mode}:${lang}:${photo.hash}`;
+        let r = cachedId(key);
+        if (!r) {
+          r = await backend.ai("identify", photo, lang, ctl.signal);
+          if (ctl.signal.aborted) return;
+          if (r.isPlant && !r.demo) rememberId(key, r);
+        }
         setScan(s => ({ ...s, status: "result", result: r }));
         if (r.isPlant && rooms.length) {
           const best = bestRoom(r.needs, rooms, { weather });
