@@ -80,6 +80,7 @@ export default function Garden() {
       </div>
 
       <div className="sick-strip">
+        <span className="ic" aria-hidden="true"><I.Pulse size={20} /></span>
         <div>
           <b>{t("heroTitle")}</b>
           <small>
@@ -88,7 +89,7 @@ export default function Garden() {
               : t("subHealth")}
           </small>
         </div>
-        <button className="btn" onClick={() => actions.checkHealthOf(null)}><I.Pulse />{t("checkShort")}</button>
+        <button className="btn" onClick={() => actions.checkHealthOf(null)}>{t("checkShort")}</button>
       </div>
 
       <div className="pills" role="group" aria-label={t("gStatus")}>

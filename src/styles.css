@@ -3,14 +3,14 @@
 :root {
   --bg: #FFFFFF;
   --surface: #FFFFFF;
-  --sunk: #F1F6EE;
-  --mint: #E3F2DA;
-  --mint-2: #EEF7E9;
+  --sunk: #F2F3F0;
+  --mint: #EDF1EA;      /* photo tiles: barely-green stone */
+  --mint-2: #F6F7F4;    /* card ground: warm neutral */
   --ink: #1B2116;
   --muted: #6A7465;
-  --line: #E2EADD;
+  --line: #E5E8E2;
   --moss: #3F8F1F;
-  --moss-soft: #E3F2DA;
+  --moss-soft: #E6F1DF;
   --on-moss: #FFFFFF;
   --pollen: #74B843;
   --on-pollen: #FFFFFF;
@@ -33,10 +33,10 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0D130B; --surface: #151D12; --sunk: #1B2617; --mint: #1F2E19; --mint-2: #19251A; --ink: #E6EEE2; --muted: #9AA894;
-    --line: #26331F; --moss: #7CC452; --moss-soft: #1F2E19; --on-moss: #0B1607; --pollen: #8FD162; --on-pollen: #0B1607;
+    --bg: #101110; --surface: #171917; --sunk: #1E201E; --mint: #222522; --mint-2: #191B19; --ink: #ECEEEA; --muted: #A0A59D;
+    --line: #2A2D2A; --moss: #8ACB60; --moss-soft: #1F271B; --on-moss: #0B1607; --pollen: #8FD162; --on-pollen: #0B1607;
     --ok: #8FD162; --ok-soft: #1F2E19; --warn: #F0B45C; --warn-soft: #33270F; --bad: #FF7B70; --bad-soft: #3A1A17;
-    --sky: #6FB6F5; --sky-soft: #142636; --track: #2A3526;
+    --sky: #6FB6F5; --sky-soft: #15222E; --track: #2C2F2C;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
     color-scheme: dark;
   }
@@ -411,21 +411,23 @@ p { margin: 0; }
   background: var(--mint); display: grid; grid-template-rows: 150px auto; min-width: 0;
 }
 .shelf-card .ph { width: 100%; height: 150px; object-fit: cover; display: block; }
-.shelf-card .ph-empty { display: grid; place-items: center; color: var(--moss); height: 150px; }
+.shelf-card .ph-empty { display: grid; place-items: center; color: var(--muted); opacity: .55; height: 150px; }
 .shelf-card .meta { padding: 8px 12px 12px; display: grid; gap: 1px; min-width: 0; }
 .shelf-card .st { font-size: 12px; font-weight: 600; }
 .shelf-card .nm { font-weight: 700; font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
 .st-healthy { color: var(--ok); }
+.pill { font-weight: 400; }
 .st-water { color: var(--sky); }
 .st-attention { color: var(--bad); }
 
 .sick-strip {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center;
-  padding: 14px 14px 14px 16px; border-radius: 18px; background: var(--moss); color: var(--on-moss);
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 12px 12px 12px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow);
 }
+.sick-strip .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--bad-soft); color: var(--bad); }
 .sick-strip b { display: block; font-size: 16px; }
-.sick-strip small { opacity: .85; font-size: 12px; }
-.sick-strip .btn { background: var(--on-moss); color: var(--moss); width: auto; min-height: 40px; padding: 0 14px; font-size: 14px; }
+.sick-strip small { color: var(--muted); font-size: 12px; }
+.sick-strip .btn { background: var(--moss); color: var(--on-moss); width: auto; min-height: 40px; padding: 0 14px; font-size: 14px; }
 
 .pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .pill {
@@ -445,7 +447,7 @@ p { margin: 0; }
   aspect-ratio: 1 / 1.05; display: block; width: 100%; text-align: left; color: var(--ink);
 }
 .pcard-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.pcard-photo .ph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--moss); }
+.pcard-photo .ph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); opacity: .55; }
 .pcard-photo .nm {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 10px 9px;
   font-weight: 700; font-size: 14px; line-height: 1.2; overflow-wrap: anywhere;
@@ -478,6 +480,6 @@ p { margin: 0; }
 .plant-row, .card, .care-item, .room-card, .group, .list-box, .problem, .room-fit, .progress { border-color: var(--line); }
 .hero { background: var(--moss); }
 .btn-hero { background: var(--on-moss); color: var(--moss); }
-.tab-scan[aria-current="page"] .fab { background: var(--moss); color: var(--on-moss); box-shadow: 0 0 0 4px var(--mint); }
-.tab-scan .fab { background: var(--mint); color: var(--moss); }
+.tab-scan[aria-current="page"] .fab { background: var(--moss); color: var(--on-moss); }
+.tab-scan .fab { background: var(--sunk); color: var(--ink); }
 .tabbar { background: color-mix(in srgb, var(--surface) 94%, transparent); }
