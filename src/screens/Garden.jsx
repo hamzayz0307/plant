@@ -12,7 +12,7 @@ export function dueText(t, s) {
 }
 
 export default function Garden() {
-  const { t, lang, plants, rooms, roomOf, statusOf, actions, profile } = useApp();
+  const { t, lang, plants, rooms, roomOf, statusOf, actions, profile, healthUsage } = useApp();
   const [filter, setFilter] = useState("all");
   const showExamples = plants.length === 0;
 
@@ -20,6 +20,7 @@ export default function Garden() {
     .map(p => ({ p, s: statusOf(p) }))
     .filter(x => x.s.due)
     .sort((a, b) => a.s.daysLeft - b.s.daysLeft);
+  const rechecks = plants.filter(p => p.recheckAt && p.recheckAt <= Date.now());
 
   const roomOptions = [{ value: "all", label: t("filterAll") }, ...rooms.map(r => ({ value: r.id, label: r.name }))];
   if (plants.some(p => !p.roomId) && rooms.length) roomOptions.push({ value: "none", label: t("noRoom") });
@@ -37,10 +38,31 @@ export default function Garden() {
         </div>
       </header>
 
+      <div className="hero">
+        <div className="hero-text">
+          <h2>{t("heroTitle")}</h2>
+          <p>{t("heroSub")}</p>
+        </div>
+        <button className="btn btn-hero" onClick={() => actions.checkHealthOf(null)}><I.Pulse />{t("heroBtn")}</button>
+        {healthUsage && healthUsage.limit != null && (
+          <span className="hero-usage">{t("freeLeft", Math.max(0, healthUsage.limit - healthUsage.used), healthUsage.limit)}</span>
+        )}
+      </div>
+
       {!showExamples && (
         <div className="today" aria-label={t("today")}>
           <div className="today-head"><h3>{t("today")}</h3>{due.length > 0 && <span className="small">{t("needsWater")}: {due.length}</span>}</div>
-          {due.length === 0
+          {rechecks.map(p => (
+            <div className="today-item" key={`rc-${p.id}`}>
+              <Thumb plant={p} />
+              <button className="link-btn" style={{ textAlign: "left", padding: 0, color: "inherit", minWidth: 0 }} onClick={() => actions.openPlant(p.id)}>
+                <span className="nm" style={{ display: "block" }}>{displayName(p)}</span>
+                <span className="sub late">{t("recheckDue")}</span>
+              </button>
+              <button className="btn btn-sm btn-primary" onClick={() => actions.checkHealthOf(p.id)}><I.Pulse />{t("checkAgain")}</button>
+            </div>
+          ))}
+          {due.length === 0 && rechecks.length === 0
             ? <p className="today-empty"><I.Check />{t("allGood")}</p>
             : due.map(({ p, s }) => {
               const d = dueText(t, s);

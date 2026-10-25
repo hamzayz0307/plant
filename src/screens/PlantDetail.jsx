@@ -111,6 +111,32 @@ export default function PlantDetail({ id }) {
       {!p.example && (
         <>
           <h3>{t("healthLog")}</h3>
+          {health.length >= 2 && (() => {
+            const first = health[health.length - 1];
+            const latest = health[0];
+            const trend = latest.result?.trend;
+            return (
+              <div className="progress">
+                <div className="row-between" style={{ alignItems: "center" }}>
+                  <b>{t("progress")}</b>
+                  {trend && <span className={`trend trend-${trend}`}>{t(`trend.${trend}`)}</span>}
+                </div>
+                <div className="ba">
+                  {[[first, t("firstCheck")], [latest, t("latestCheck")]].map(([h, label]) => (
+                    <figure key={h.id}>
+                      {h.photo ? <img src={h.photo} alt="" /> : <span className="ph" />}
+                      <figcaption><b>{label}</b> · {formatDate(h.createdAt, lang)}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+          {p.recheckAt && (
+            <p className={p.recheckAt <= Date.now() ? "note warn" : "muted small"}>
+              {p.recheckAt <= Date.now() ? t("recheckDue") : t("recheckOn", formatDate(p.recheckAt, lang))}
+            </p>
+          )}
           {health.length === 0
             ? <p className="muted small">{t("noHealth")}</p>
             : (
@@ -127,7 +153,7 @@ export default function PlantDetail({ id }) {
                 ))}
               </ul>
             )}
-          <button className="btn btn-secondary" onClick={() => actions.checkHealthOf(p.id)}><I.Pulse />{t("runHealth")}</button>
+          <button className="btn btn-secondary" onClick={() => actions.checkHealthOf(p.id)}><I.Pulse />{p.recheckAt && p.recheckAt <= Date.now() ? t("checkAgain") : t("runHealth")}</button>
 
           <div className="field">
             <label htmlFor="notes">{t("notes")}</label>

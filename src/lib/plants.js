@@ -59,10 +59,27 @@ export function demoIdentify(lang) {
   };
 }
 
-export function demoHealth(lang) {
+function demoContextNote(tr, ctx) {
+  if (!ctx) return "";
+  const parts = [];
+  const r = ctx.room;
+  const w = ctx.watering;
+  if (r && (r.light === "low" || r.light === "medium")) parts.push(tr ? `${r.name} az ışık alıyor` : `${r.name} gets little light`);
+  if (w.ownerWatersEveryDays && w.ownerWatersEveryDays < w.recommendedEveryDays) {
+    parts.push(tr ? `${w.ownerWatersEveryDays} günde bir sulanıyor (önerilen ${w.recommendedEveryDays})` : `it's watered every ${w.ownerWatersEveryDays} days (we suggest ${w.recommendedEveryDays})`);
+  } else if (w.lastWateredDaysAgo != null && w.lastWateredDaysAgo <= 2) {
+    parts.push(tr ? `${w.lastWateredDaysAgo} gün önce sulandı` : `it was watered ${w.lastWateredDaysAgo} days ago`);
+  }
+  if (!parts.length) return "";
+  return tr ? `${parts.join(" ve ")}: bu, fazla sulamayı en olası neden yapıyor.` : `${parts.join(" and ")}: that makes overwatering the most likely cause.`;
+}
+
+export function demoHealth(lang, ctx = null) {
   const tr = lang === "tr";
   return {
     isPlant: true, demo: true, healthy: false, urgency: "medium",
+    contextNote: demoContextNote(tr, ctx),
+    trend: ctx?.previousCheck ? "better" : null,
     summary: tr ? "Alt yapraklar sararmış ve toprak ıslak görünüyor." : "Lower leaves are yellowing and the soil looks wet.",
     problems: [
       {
@@ -124,6 +141,8 @@ export function normalizeHealth(r) {
     healthy: !!r.healthy,
     urgency: oneOf(r.urgency, ["low", "medium", "high"], "low"),
     summary: str(r.summary),
+    contextNote: str(r.contextNote),
+    trend: oneOf(r.trend, ["better", "same", "worse"], null),
     problems: (Array.isArray(r.problems) ? r.problems : []).slice(0, 3).map(p => ({
       name: str(p?.name), likelihood: Math.round(clamp(num(p?.likelihood, 0), 0, 100)),
       signs: str(p?.signs), cause: str(p?.cause),

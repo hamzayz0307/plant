@@ -4,6 +4,7 @@ import { guessLang, makeT } from "./lib/i18n.js";
 import { getWeather } from "./lib/weather.js";
 import { waterStatus } from "./lib/care.js";
 import { displayName } from "./lib/plants.js";
+import { appendWater } from "./lib/context.js";
 import * as I from "./components/icons.jsx";
 import Garden from "./screens/Garden.jsx";
 import PlantDetail from "./screens/PlantDetail.jsx";
@@ -52,7 +53,7 @@ function Main() {
   return <Shell key={user.id} user={user} t={t} lang={lang} setLang={changeLang} />;
 }
 
-const EMPTY_SCAN = { mode: "identify", status: "idle", photo: null, result: null, error: null, attachTo: null };
+const EMPTY_SCAN = { mode: "health", status: "idle", photo: null, result: null, error: null, attachTo: null };
 
 function Shell({ user, t, lang, setLang }) {
   const [profile, setProfile] = useState(null);
@@ -67,6 +68,7 @@ function Shell({ user, t, lang, setLang }) {
   const [detailId, setDetailId] = useState(null);
   const [scan, setScan] = useState(EMPTY_SCAN);
   const [toastMsg, setToastMsg] = useState(null);
+  const [healthUsage, setHealthUsage] = useState(null);
   const toastTimer = useRef();
 
   const toast = useCallback(msg => {
@@ -92,6 +94,7 @@ function Shell({ user, t, lang, setLang }) {
         else if (!prof.lang) backend.saveProfile({ lang }).catch(() => {});
       } catch { setProfile({ lang, city: null, petSafe: false, reminders: false }); }
       await refresh();
+      backend.healthUsage().then(setHealthUsage).catch(() => {});
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -107,6 +110,7 @@ function Shell({ user, t, lang, setLang }) {
   const roomOf = useCallback(p => rooms.find(r => r.id === p.roomId) || null, [rooms]);
   const statusOf = useCallback(p => waterStatus(p, roomOf(p), weather), [roomOf, weather]);
   const dueCount = plants.filter(p => statusOf(p).due).length;
+  const recheckCount = plants.filter(p => p.recheckAt && p.recheckAt <= Date.now()).length;
 
   // Reminder notification when the app opens (once a day)
   useEffect(() => {
@@ -114,13 +118,14 @@ function Shell({ user, t, lang, setLang }) {
     const day = new Date().toDateString();
     let last = null;
     try { last = localStorage.getItem("yaprak.notified"); } catch { /* ignore */ }
-    if (dueCount > 0 && last !== day) {
+    if ((dueCount > 0 || recheckCount > 0) && last !== day) {
       try {
-        new Notification(t("notifTitle"), { body: t("notifBody", dueCount), icon: "/leaf.svg", tag: "yaprak-water" });
+        const body = [dueCount ? t("notifBody", dueCount) : "", recheckCount ? t("notifRecheck", recheckCount) : ""].filter(Boolean).join(" ");
+        new Notification(t("notifTitle"), { body, icon: "/leaf.svg", tag: "yaprak-water" });
         localStorage.setItem("yaprak.notified", day);
       } catch { /* some phones only allow notifications from an installed app */ }
     }
-  }, [profile?.reminders, plants.length, dueCount, t]);
+  }, [profile?.reminders, plants.length, dueCount, recheckCount, t]);
 
   const setTab = useCallback(next => {
     setTabState(next); setDetailId(null);
@@ -146,7 +151,8 @@ function Shell({ user, t, lang, setLang }) {
     async deletePlant(id) { await backend.deletePlant(id); await refresh(); },
     async water(plant) {
       try {
-        await actions.updatePlant(plant.id, { lastWatered: Date.now() });
+        const now = Date.now();
+        await actions.updatePlant(plant.id, { lastWatered: now, waterLog: appendWater(plant, now) });
         toast(t("wateredToast", displayName(plant)));
       } catch { toast(t("errSave")); }
     },
@@ -156,6 +162,7 @@ function Shell({ user, t, lang, setLang }) {
       await refresh();
     },
     async deleteRoom(id) { await backend.deleteRoom(id); await refresh(); },
+    refreshHealthUsage() { return backend.healthUsage().then(setHealthUsage).catch(() => {}); },
     checkHealthOf(plantId) {
       setScan({ ...EMPTY_SCAN, mode: "health", attachTo: plantId });
       setTab("scan");
@@ -163,7 +170,7 @@ function Shell({ user, t, lang, setLang }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [refresh, toast, setTab, setLang, t]);
 
-  const ctx = { t, lang, user, profile, plants, rooms, weather, roomOf, statusOf, actions, scan, setScan, backend };
+  const ctx = { t, lang, user, profile, plants, rooms, weather, roomOf, statusOf, actions, scan, setScan, backend, healthUsage };
 
   let screen;
   if (!profile) screen = <div className="splash" style={{ minHeight: "60vh" }}><span className="spinner" /></div>;
@@ -186,7 +193,7 @@ function Shell({ user, t, lang, setLang }) {
       </main>
       <div className="tabbar">
         <nav aria-label="Main">
-          <TabBtn id="garden" label={t("tabGarden")} Icon={I.Garden} badge={dueCount || null} />
+          <TabBtn id="garden" label={t("tabGarden")} Icon={I.Garden} badge={dueCount + recheckCount || null} />
           <button className="tab tab-scan" onClick={() => setTab("scan")} aria-current={tab === "scan" ? "page" : undefined}>
             <span className="fab"><I.Scan /></span><span>{t("tabScan")}</span>
           </button>

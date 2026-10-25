@@ -344,3 +344,38 @@ p { margin: 0; }
   .scanning::after, .spinner { animation: none; }
   .switch span, .switch span::after { transition: none; }
 }
+
+/* Sick-plant focus */
+.hero {
+  display: grid; gap: 14px; padding: 18px; border-radius: 22px;
+  background: var(--moss); color: var(--on-moss);
+}
+.hero-text { display: grid; gap: 4px; }
+.hero h2 { color: var(--on-moss); }
+.hero p { opacity: .88; font-size: 14px; }
+.btn-hero { background: var(--pollen); color: var(--on-pollen); }
+.hero-usage { font-size: 12px; opacity: .8; text-align: center; }
+
+.ctx { display: grid; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--moss-soft); }
+.ctx-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--moss); }
+.ctx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ctx-chips span { background: var(--surface); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 500; }
+
+.home-note { display: grid; gap: 6px; padding: 14px 16px; border-radius: 16px; background: var(--moss-soft); border-left: 4px solid var(--moss); }
+.home-note p { font-weight: 500; }
+
+.trend { display: inline-flex; width: fit-content; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; }
+.trend-better { background: var(--ok-soft); color: var(--ok); }
+.trend-same { background: var(--sunk); color: var(--muted); }
+.trend-worse { background: var(--bad-soft); color: var(--bad); }
+
+.progress { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.ba { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ba figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+.ba img, .ba .ph { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; background: var(--moss-soft); display: block; }
+.ba figcaption { font-size: 12px; color: var(--muted); }
+.ba figcaption b { color: var(--ink); }
+
+.paywall { display: grid; gap: 6px; padding: 16px; border-radius: 16px; background: var(--warn-soft); color: var(--warn); }
+.paywall b { font-size: 16px; }
+.paywall p { font-size: 14px; color: var(--ink); }

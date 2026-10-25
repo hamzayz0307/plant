@@ -10,7 +10,7 @@ async function copyText(text) {
 }
 
 export default function Profile() {
-  const { t, lang, user, profile, plants, rooms, actions, backend, weather } = useApp();
+  const { t, lang, user, profile, plants, rooms, actions, backend, weather, healthUsage } = useApp();
   const cloud = backend.mode === "cloud";
 
   const [cityInput, setCityInput] = useState(profile.city?.name || "");
@@ -90,6 +90,14 @@ export default function Profile() {
           {cloud && <button className="btn btn-sm btn-ghost" onClick={() => backend.auth.signOut()}>{t("signOut")}</button>}
         </div>
         {!cloud && <div className="group-row"><span className="t"><small>{t("onDeviceNote")}</small></span></div>}
+        {healthUsage && (
+          <div className="group-row">
+            <span className="t">
+              <b>{t("plan")}: {healthUsage.plan === "plus" ? t("planPlus") : t("planFree")}</b>
+              <small>{healthUsage.limit == null ? t("plusUnlimited") : t("freeLeft", Math.max(0, healthUsage.limit - healthUsage.used), healthUsage.limit)}</small>
+            </span>
+          </div>
+        )}
         {usage && <div className="group-row"><span className="t"><small>{t("aiUsage", usage.used, usage.limit)}</small></span></div>}
       </div>
 

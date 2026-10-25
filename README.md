@@ -4,6 +4,8 @@ Plant app: scan a plant, learn its care, keep it alive in *your* rooms.
 
 ## What it does
 
+**Main feature: the sick-plant check.** A photo plus what Yaprak knows about the plant's home (room light, radiator, how often you really water, weather, the last check) gives a diagnosis photo-only apps can't. Free: 5 checks a month. Plus (coming): unlimited checks and follow-ups.
+
 | # | Function | Where |
 |---|----------|-------|
 | 1 | App shell, EN/TR, example plants | all screens |
@@ -13,7 +15,7 @@ Plant app: scan a plant, learn its care, keep it alive in *your* rooms.
 | 5 | **Rooms**: window direction, light, air, radiator, balcony. Care and watering adjust to the room | Rooms, plant page |
 | 6 | **Will it survive at my place?** Scan before buying, see the best room | Scan → Before buying |
 | 7 | **Watering**: schedule per plant, "Watered" button, Today list, reminder on open, rain skips balcony plants | My Garden, Profile → City |
-| 8 | **Sick plant check** with a health log per plant | Scan → Sick plant, plant page |
+| 8 | **Sick plant check** (main feature): uses room, watering history and weather; saves to the plant's health log; 7-day follow-up photo with before/after and "getting better/worse" | My Garden → Check a sick plant, Scan → Sick plant |
 | 9 | **Plant-sitter link**: share a page, no app needed, sitter ticks "Watered" | Profile |
 | 10 | **Pet-safe mode**, daily AI limit (15 scans), feedback | Profile |
 
@@ -51,6 +53,9 @@ The free plan allows 2 active projects. To free one: Supabase dashboard → open
 2. Top left → **+** → **Create a new snippet**.
 3. Open `supabase/migrations/001_init.sql` in GitHub → copy everything → paste.
 4. Bottom right → **Run**. It should say *Success. No rows returned*.
+5. Top left → **+** → **Create a new snippet** again. Paste `supabase/migrations/002_health_focus.sql` → **Run**.
+
+To give yourself Plus (unlimited checks) for testing: left menu → **Table Editor** → **profiles** → double-click your row's **plan** cell → type `plus` → **Save**. Users can't change this themselves.
 
 **3. Sign-in settings**
 1. Left menu → **Authentication** → **Sign In / Providers** → **Email**.
@@ -94,4 +99,5 @@ npm run dev
 - `supabase/migrations/001_init.sql`: tables, row-level security, sitter + limit functions
 - `supabase/functions/plant-ai/index.ts`: Gemini identify + health, daily limit (`DAILY_AI_LIMIT`, default 15)
 
-Optional Edge Function secrets: `GEMINI_MODEL` (default `gemini-2.5-flash`), `DAILY_AI_LIMIT`.
+Optional Edge Function secrets: `GEMINI_MODEL` (default `gemini-2.5-flash`), `DAILY_AI_LIMIT` (default 15), `FREE_HEALTH_PER_MONTH` (default 5).
+- `src/lib/context.js`: what Yaprak sends with a sick-plant photo (room, watering habit, weather, last check)

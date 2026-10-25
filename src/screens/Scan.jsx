@@ -2,34 +2,42 @@ import { useState } from "react";
 import { useApp } from "../App.jsx";
 import { preparePhoto } from "../lib/photo.js";
 import { bestRoom, roomFit } from "../lib/care.js";
+import { buildContext, contextChips } from "../lib/context.js";
 import { displayName } from "../lib/plants.js";
 import { CareGrid, FitPill, HealthResult, PhotoPicker, Reasons, Safety, Segmented } from "../components/parts.jsx";
 import * as I from "../components/icons.jsx";
+import { formatDate } from "./PlantDetail.jsx";
 
 let controller = null; // the running scan, so Stop works even after switching tabs
+const WEEK = 7 * 864e5;
 
 export default function Scan() {
-  const { t, lang, scan, setScan, rooms, plants, weather, actions, backend, profile } = useApp();
+  const { t, lang, scan, setScan, rooms, plants, weather, roomOf, actions, backend, profile, healthUsage } = useApp();
   const { mode, status, photo, result, error } = scan;
   const [nickname, setNickname] = useState("");
   const [roomId, setRoomId] = useState("");
-  const [attachId, setAttachId] = useState(scan.attachTo || "");
+  const [plantId, setPlantId] = useState(scan.attachTo || "");
   const [saving, setSaving] = useState(false);
 
   const patch = p => setScan(s => ({ ...s, ...p }));
+  const selectedPlant = plants.find(p => p.id === plantId) || null;
+  const previewCtx = mode === "health" && selectedPlant
+    ? buildContext({ plant: selectedPlant, room: roomOf(selectedPlant), weather })
+    : null;
 
   function reset(nextMode = mode) {
     controller?.abort();
     if (photo?.previewUrl) URL.revokeObjectURL(photo.previewUrl);
-    setScan(s => ({ mode: nextMode, status: "idle", photo: null, result: null, error: null, attachTo: nextMode === "health" ? s.attachTo : null }));
+    setScan(s => ({ mode: nextMode, status: "idle", photo: null, result: null, error: null, limit: null, savedTo: null, recheckAt: null, attachTo: nextMode === "health" ? s.attachTo : null }));
     setNickname(""); setRoomId("");
   }
 
   async function onFile(file) {
-    reset();
+    controller?.abort();
+    if (photo?.previewUrl) URL.revokeObjectURL(photo.previewUrl);
     try {
       const prepared = await preparePhoto(file);
-      patch({ photo: prepared, status: "ready", error: null });
+      patch({ photo: prepared, status: "ready", error: null, result: null, limit: null });
     } catch {
       patch({ error: t("errRead") });
     }
@@ -39,18 +47,40 @@ export default function Scan() {
     if (!photo || status === "thinking") return;
     const ctl = new AbortController();
     controller = ctl;
-    patch({ status: "thinking", error: null, result: null });
+    patch({ status: "thinking", error: null, result: null, limit: null, savedTo: null, recheckAt: null });
     try {
-      const r = await backend.ai(mode === "health" ? "health" : "identify", photo, lang, ctl.signal);
-      if (ctl.signal.aborted) return;
-      setScan(s => ({ ...s, status: "result", result: r }));
-      if (mode !== "health" && r.isPlant && rooms.length) {
-        const best = bestRoom(r.needs, rooms, { weather });
-        if (best) setRoomId(best.room.id);
+      if (mode === "health") {
+        let context = null;
+        if (selectedPlant) {
+          const log = await backend.listHealth(selectedPlant.id).catch(() => []);
+          context = buildContext({ plant: selectedPlant, room: roomOf(selectedPlant), weather, lastCheck: log[0] || null });
+        }
+        const r = await backend.ai("health", photo, lang, ctl.signal, context);
+        if (ctl.signal.aborted) return;
+        let savedTo = null, recheckAt = null;
+        if (r.isPlant && selectedPlant) {
+          recheckAt = r.healthy ? null : Date.now() + WEEK;
+          try {
+            await backend.addHealth(selectedPlant.id, { photo: photo.thumb, result: r });
+            await actions.updatePlant(selectedPlant.id, { recheckAt });
+            savedTo = selectedPlant.id;
+          } catch { /* result still shows; user can retry saving */ }
+        }
+        setScan(s => ({ ...s, status: "result", result: r, savedTo, recheckAt }));
+        actions.refreshHealthUsage();
+      } else {
+        const r = await backend.ai("identify", photo, lang, ctl.signal);
+        if (ctl.signal.aborted) return;
+        setScan(s => ({ ...s, status: "result", result: r }));
+        if (r.isPlant && rooms.length) {
+          const best = bestRoom(r.needs, rooms, { weather });
+          if (best) setRoomId(best.room.id);
+        }
       }
       window.scrollTo({ top: 0 });
     } catch (e) {
       if (e.code === "cancelled" || ctl.signal.aborted) { patch({ status: "ready" }); return; }
+      if (e.code === "health_limit") { patch({ status: "ready", limit: e.limit }); actions.refreshHealthUsage(); return; }
       const msg = e.code === "limit" ? t("errLimit", e.limit) : e.code === "auth" ? t("errNotSignedIn") : t("errAi");
       patch({ status: "ready", error: msg });
     } finally {
@@ -61,15 +91,16 @@ export default function Scan() {
   async function savePlant() {
     if (!result?.isPlant || saving) return;
     setSaving(true);
+    const now = Date.now();
     try {
       await actions.addPlant({
         nickname: nickname.trim(),
         commonName: result.commonName, scientificName: result.scientificName, family: result.family,
         confidence: result.confidence, description: result.description, care: result.care, needs: result.needs,
         difficulty: result.difficulty, wateringDays: result.wateringDays, toxicity: result.toxicity,
-        photo: photo?.thumb || null, notes: "", roomId: roomId || null, lastWatered: Date.now(), lang,
+        photo: photo?.thumb || null, notes: "", roomId: roomId || null, lastWatered: now, waterLog: [now], lang,
       });
-      reset("identify");
+      reset("health");
       actions.setTab("garden");
       actions.toast(t("savedToGarden"));
     } catch {
@@ -78,15 +109,16 @@ export default function Scan() {
     setSaving(false);
   }
 
-  async function attachHealth() {
-    if (!attachId || saving) return;
+  // Health result for a plant not chosen before the scan
+  async function attachLater(id) {
+    if (!id || saving) return;
     setSaving(true);
     try {
-      await backend.addHealth(attachId, { photo: photo?.thumb || null, result });
-      const id = attachId;
-      reset("identify");
-      actions.openPlant(id);
-      actions.toast(t("attached"));
+      const recheckAt = result.healthy ? null : Date.now() + WEEK;
+      await backend.addHealth(id, { photo: photo?.thumb || null, result });
+      await actions.updatePlant(id, { recheckAt });
+      patch({ savedTo: id, recheckAt });
+      setPlantId(id);
     } catch {
       patch({ error: t("errSave") });
     }
@@ -94,12 +126,42 @@ export default function Scan() {
   }
 
   const modes = [
+    { value: "health", label: t("modeHealth") },
     { value: "identify", label: t("modeIdentify") },
     { value: "survive", label: t("modeSurvive") },
-    { value: "health", label: t("modeHealth") },
   ];
   const sub = { identify: t("subIdentify"), survive: t("subSurvive"), health: t("subHealth") }[mode];
   const runLabel = { identify: t("identify"), survive: t("checkSurvive"), health: t("checkHealth") }[mode];
+
+  const usageLine = mode === "health" && healthUsage && (
+    <p className="muted small">
+      {healthUsage.limit == null ? t("plusUnlimited") : t("freeLeft", Math.max(0, healthUsage.limit - healthUsage.used), healthUsage.limit)}
+    </p>
+  );
+
+  const plantPicker = mode === "health" && plants.length > 0 && (
+    <div className="field">
+      <label htmlFor="which-plant">{t("whichPlant")}</label>
+      <select id="which-plant" value={plantId} onChange={e => setPlantId(e.target.value)}>
+        <option value="">{t("notInGarden")}</option>
+        {plants.map(p => <option key={p.id} value={p.id}>{displayName(p)}</option>)}
+      </select>
+    </div>
+  );
+
+  const chips = contextChips(t, previewCtx);
+  const contextBox = mode === "health" && plants.length > 0 && (
+    chips.length
+      ? <div className="ctx"><span className="ctx-title"><I.Home size={16} />{t("ctxTitle")}</span><div className="ctx-chips">{chips.map(c => <span key={c}>{c}</span>)}</div></div>
+      : <p className="muted small">{t("ctxNone")}</p>
+  );
+
+  const limitCard = scan.limit && (
+    <div className="paywall">
+      <b>{t("limitTitle", scan.limit)}</b>
+      <p>{t("limitSub")}</p>
+    </div>
+  );
 
   const head = (
     <>
@@ -118,7 +180,10 @@ export default function Scan() {
     return (
       <section className="screen">
         {head}
+        {plantPicker}
+        {contextBox}
         <PhotoPicker t={t} onFile={onFile} />
+        {usageLine}
         {error && <div className="error">{error}</div>}
         <ul className="tips">{t("tips").map(x => <li key={x}><span className="dot" />{x}</li>)}</ul>
       </section>
@@ -135,6 +200,7 @@ export default function Scan() {
           <span className="msg"><span className="spinner" />{mode === "health" ? t("thinkingHealth") : t("thinking")}</span>
           <button className="link-btn" onClick={() => controller?.abort()}>{t("stop")}</button>
         </div>
+        {contextBox}
       </section>
     );
   }
@@ -145,8 +211,12 @@ export default function Scan() {
       <section className="screen">
         {head}
         {photoView}
+        {plantPicker}
+        {contextBox}
+        {limitCard}
         {error && <div className="error">{error}</div>}
-        <button className="btn btn-primary" onClick={run}><I.Leaf />{runLabel}</button>
+        {!scan.limit && <button className="btn btn-primary" onClick={run}>{mode === "health" ? <I.Pulse /> : <I.Leaf />}{runLabel}</button>}
+        {usageLine}
         <button className="btn btn-ghost" onClick={() => reset()}>{t("another")}</button>
       </section>
     );
@@ -167,24 +237,39 @@ export default function Scan() {
   const demo = result.demo && <div className="note"><I.Info /><span>{t("demoNote")}</span></div>;
 
   if (mode === "health") {
+    const saved = plants.find(p => p.id === scan.savedTo);
     return (
       <section className="screen">
         {photoView}
         {demo}
-        <HealthResult t={t} result={result} />
-        {plants.length > 0 && (
-          <>
-            <div className="field">
-              <label htmlFor="attach">{t("attachTo")}</label>
-              <select id="attach" value={attachId} onChange={e => setAttachId(e.target.value)}>
-                <option value="">{t("attachPick")}</option>
-                {plants.map(p => <option key={p.id} value={p.id}>{displayName(p)}</option>)}
-              </select>
-            </div>
-            {error && <div className="error">{error}</div>}
-            <button className="btn btn-primary" disabled={!attachId || saving} onClick={attachHealth}>{saving ? t("saving") : t("attachTo")}</button>
-          </>
+        {result.contextNote && (
+          <div className="home-note">
+            <span className="ctx-title"><I.Home size={16} />{t("homeNote")}</span>
+            <p>{result.contextNote}</p>
+          </div>
         )}
+        {result.trend && <span className={`trend trend-${result.trend}`}>{t(`trend.${result.trend}`)}</span>}
+        <HealthResult t={t} result={result} />
+
+        {saved ? (
+          <div className="note">
+            <I.Check />
+            <span>
+              {t("savedToLog", displayName(saved))}
+              {scan.recheckAt ? ` ${t("recheckSet", formatDate(scan.recheckAt, lang))}` : ""}
+            </span>
+          </div>
+        ) : plants.length > 0 && (
+          <div className="field">
+            <label htmlFor="attach">{t("attachTo")}</label>
+            <select id="attach" defaultValue="" onChange={e => attachLater(e.target.value)} disabled={saving}>
+              <option value="">{t("attachPick")}</option>
+              {plants.map(p => <option key={p.id} value={p.id}>{displayName(p)}</option>)}
+            </select>
+          </div>
+        )}
+        {error && <div className="error">{error}</div>}
+        {saved && <button className="btn btn-primary" onClick={() => { const id = saved.id; reset("health"); actions.openPlant(id); }}>{t("openPlant")}</button>}
         <button className="btn btn-ghost" onClick={() => reset()}>{t("another")}</button>
       </section>
     );

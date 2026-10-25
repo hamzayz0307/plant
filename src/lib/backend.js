@@ -6,6 +6,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { demoHealth, demoIdentify, normalizeHealth, normalizeIdentify } from "./plants.js";
+import { FREE_HEALTH_PER_MONTH, monthKey } from "./context.js";
 
 const URL_ = import.meta.env.VITE_SUPABASE_URL;
 const KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -14,7 +15,7 @@ export class AiError extends Error {
   constructor(code, extra = {}) { super(code); this.code = code; Object.assign(this, extra); }
 }
 
-const DEFAULT_PROFILE = { lang: null, city: null, petSafe: false, reminders: false };
+const DEFAULT_PROFILE = { lang: null, city: null, petSafe: false, reminders: false, plan: "free" };
 
 function token(n = 24) {
   const a = new Uint8Array(n);
@@ -84,11 +85,24 @@ function createLocalBackend() {
     async listHealth(plantId) { return db.health.filter(h => h.plantId === plantId).sort((a, b) => b.createdAt - a.createdAt); },
     async addHealth(plantId, entry) { db.health.push({ ...entry, id: newId(), plantId, createdAt: Date.now() }); persist(); },
 
-    async ai(mode, _photo, lang, signal) {
+    async ai(mode, _photo, lang, signal, context = null) {
+      if (mode === "health") {
+        const m = monthKey();
+        const used = db.healthUsage?.[m] || 0;
+        if (db.profile.plan !== "plus" && used >= FREE_HEALTH_PER_MONTH) throw new AiError("health_limit", { limit: FREE_HEALTH_PER_MONTH });
+        await wait(1100, signal);
+        db.healthUsage = { [m]: used + 1 };
+        persist();
+        return normalizeHealth(demoHealth(lang, context));
+      }
       await wait(1100, signal);
-      return mode === "health" ? normalizeHealth(demoHealth(lang)) : normalizeIdentify(demoIdentify(lang));
+      return normalizeIdentify(demoIdentify(lang));
     },
     async aiUsage() { return null; },
+    async healthUsage() {
+      const plan = db.profile.plan || "free";
+      return { used: db.healthUsage?.[monthKey()] || 0, limit: plan === "plus" ? null : FREE_HEALTH_PER_MONTH, plan };
+    },
 
     // Sitter link without an account: the schedule travels inside the link itself.
     async createSitterLink({ days, note, plants, rooms }) {
@@ -118,6 +132,8 @@ const plantFromRow = r => ({
   family: r.family || "", confidence: r.confidence, description: r.description || "", care: r.care || {},
   needs: r.needs || {}, difficulty: r.difficulty, wateringDays: r.watering_days, toxicity: r.toxicity || {},
   photo: r.photo || null, notes: r.notes || "", roomId: r.room_id, lastWatered: r.last_watered ? Date.parse(r.last_watered) : null,
+  waterLog: Array.isArray(r.water_log) ? r.water_log.map(x => Date.parse(x)).filter(Number.isFinite) : [],
+  recheckAt: r.recheck_at ? Date.parse(r.recheck_at) : null,
   lang: r.lang, createdAt: Date.parse(r.created_at),
 });
 
@@ -125,13 +141,15 @@ const PLANT_COLS = {
   nickname: "nickname", commonName: "common_name", scientificName: "scientific_name", family: "family",
   confidence: "confidence", description: "description", care: "care", needs: "needs", difficulty: "difficulty",
   wateringDays: "watering_days", toxicity: "toxicity", photo: "photo", notes: "notes", roomId: "room_id",
-  lastWatered: "last_watered", lang: "lang",
+  lastWatered: "last_watered", lang: "lang", waterLog: "water_log", recheckAt: "recheck_at",
 };
 function plantToRow(p) {
   const row = {};
   for (const [k, col] of Object.entries(PLANT_COLS)) {
     if (p[k] === undefined) continue;
-    row[col] = k === "lastWatered" && p[k] ? new Date(p[k]).toISOString() : p[k];
+    if ((k === "lastWatered" || k === "recheckAt") && p[k]) row[col] = new Date(p[k]).toISOString();
+    else if (k === "waterLog") row[col] = (p[k] || []).map(x => new Date(x).toISOString());
+    else row[col] = p[k];
   }
   return row;
 }
@@ -175,7 +193,7 @@ function createCloudBackend() {
     async getProfile() {
       const row = must(await sb.from("profiles").select("*").maybeSingle());
       if (!row) return { ...DEFAULT_PROFILE };
-      return { lang: row.lang, city: row.city, petSafe: row.pet_safe, reminders: row.reminders };
+      return { lang: row.lang, city: row.city, petSafe: row.pet_safe, reminders: row.reminders, plan: row.plan || "free" };
     },
     async saveProfile(patch) {
       const row = { id: await uid() };
@@ -204,7 +222,7 @@ function createCloudBackend() {
       must(await sb.from("health_checks").insert({ plant_id: plantId, user_id: await uid(), photo: entry.photo, result: entry.result }));
     },
 
-    async ai(mode, photo, lang, signal) {
+    async ai(mode, photo, lang, signal, context = null) {
       const session = (await sb.auth.getSession()).data.session;
       if (!session) throw new AiError("auth");
       let res;
@@ -212,7 +230,7 @@ function createCloudBackend() {
         res = await fetch(`${URL_}/functions/v1/plant-ai`, {
           method: "POST", signal,
           headers: { "Content-Type": "application/json", apikey: KEY, Authorization: `Bearer ${session.access_token}` },
-          body: JSON.stringify({ mode, image: photo.base64, lang }),
+          body: JSON.stringify({ mode, image: photo.base64, lang, context }),
         });
       } catch (e) {
         if (e.name === "AbortError") throw new AiError("cancelled");
@@ -221,6 +239,7 @@ function createCloudBackend() {
       const body = await res.json().catch(() => ({}));
       if (res.status === 401) throw new AiError("auth");
       if (res.status === 429) throw new AiError("limit", { limit: body.limit || 15 });
+      if (res.status === 402) throw new AiError("health_limit", { limit: body.limit || FREE_HEALTH_PER_MONTH });
       if (!res.ok) throw new AiError("ai");
       return mode === "health" ? normalizeHealth(body) : normalizeIdentify(body);
     },
@@ -228,6 +247,14 @@ function createCloudBackend() {
       const today = new Date().toISOString().slice(0, 10);
       const row = must(await sb.from("ai_usage").select("count").eq("day", today).maybeSingle());
       return { used: row?.count || 0, limit: 15 };
+    },
+    async healthUsage() {
+      const [prof, usage] = await Promise.all([
+        sb.from("profiles").select("plan").maybeSingle(),
+        sb.from("health_usage").select("count").eq("month", monthKey()).maybeSingle(),
+      ]);
+      const plan = prof.data?.plan || "free";
+      return { used: usage.data?.count || 0, limit: plan === "plus" ? null : FREE_HEALTH_PER_MONTH, plan };
     },
 
     async createSitterLink({ days, note }) {
