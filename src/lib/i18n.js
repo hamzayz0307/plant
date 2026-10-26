@@ -3,7 +3,7 @@
 export const TEXT = {
   en: {
     // Tabs
-    tabGarden: "My Garden", tabScan: "Scan", tabRooms: "Rooms", tabProfile: "Profile",
+    tabGarden: "My Plants", tabScan: "Scan", tabRooms: "Rooms", tabProfile: "Profile",
 
     // Common
     save: "Save", saving: "Saving…", cancel: "Cancel", delete: "Delete", edit: "Edit", back: "Back",
@@ -26,7 +26,7 @@ export const TEXT = {
     newPassword: "New password", setPassword: "Save new password", passwordUpdated: "Password updated",
 
     // Garden
-    gardenTitle: "My Garden",
+    gardenTitle: "My Plants",
     plantCount: n => n === 1 ? "1 plant" : `${n} plants`,
     examplesNote: "These are examples. Scan a plant to start your own garden.",
     waterEvery: d => `Water every ${d} days`,
@@ -211,12 +211,39 @@ export const TEXT = {
     plan: "Plan", planFree: "Free", planPlus: "Plus",
     notifRecheck: n => n === 1 ? "1 plant is due for a follow-up check." : `${n} plants are due for a follow-up check.`,
 
+    // Empty garden, tips, guide
+    emptyTitle: "Your garden is empty",
+    emptySub: "Scan your first plant. Yaprak finds its name and care, then reminds you when to water.",
+    emptyBtn: "Scan my first plant",
+    howTo: "How to use Yaprak",
+    howToSub: "A 1-minute tour of what Yaprak does",
+    tipTitle: "Tip of the week", tipForYou: "For your plants",
+    tipNext: "Another tip", tipHide: "Hide until next week",
+    guideSkip: "Skip", guideNext: "Next", guideStart: "Start",
+    guideSteps: [
+      { title: "Scan a plant", body: "Tap Scan → Identify and take a photo of the leaves. You get the name, how to care for it and whether it's safe for pets. Tap Save to My Garden." },
+      { title: "Add your rooms", body: "In Rooms, add each room with its window direction, light and air. Watering and care advice then fit where each plant really lives." },
+      { title: "Water with the rings", body: "On My Plants, the blue ring shows the days until the next watering. Tap Watered when you water: Yaprak learns your habit." },
+      { title: "Is a plant sick?", body: "Tap Check, choose the plant and photograph the bad leaves. Yaprak also weighs its room, your watering and the weather, then asks for a follow-up photo after 7 days." },
+      { title: "Before you buy", body: "At the nursery, use Scan → Before buying. Yaprak tells you which of your rooms suits the plant, or if none do." },
+      { title: "Going away?", body: "Profile → Plant-sitter link. Send it to a neighbour: they see what to water and when, no app needed." },
+    ],
+    // Plant cards
+    myPlants: "My Plants", allPlants: "All your plants",
+    stHealthy: "Healthy", stWater: "Need Water", stAttention: "Need Attention",
+    gStatus: "Status", gNext: "Next Watering",
+    daysUnit: n => n === 1 ? "Day" : "Days",
+    searchPh: "Search your plants", noMatch: "No plants here.",
+    search: "Search", addNew: "Add a plant",
+    lateShort: d => `${d} days late`,
+    checkShort: "Check",
+
     notifTitle: "Yaprak",
     notifBody: n => n === 1 ? "1 plant needs water today." : `${n} plants need water today.`,
   },
 
   tr: {
-    tabGarden: "Bahçem", tabScan: "Tara", tabRooms: "Odalar", tabProfile: "Profil",
+    tabGarden: "Bitkilerim", tabScan: "Tara", tabRooms: "Odalar", tabProfile: "Profil",
 
     save: "Kaydet", saving: "Kaydediliyor…", cancel: "Vazgeç", delete: "Sil", edit: "Düzenle", back: "Geri",
     close: "Kapat", example: "Örnek", none: "Yok",
@@ -236,7 +263,7 @@ export const TEXT = {
     authErrGeneric: "Bir şeyler ters gitti. Bağlantını kontrol edip tekrar dene.",
     newPassword: "Yeni şifre", setPassword: "Yeni şifreyi kaydet", passwordUpdated: "Şifre güncellendi",
 
-    gardenTitle: "Bahçem",
+    gardenTitle: "Bitkilerim",
     plantCount: n => `${n} bitki`,
     examplesNote: "Bunlar örnek bitkiler. Kendi bahçeni başlatmak için bir bitki tara.",
     waterEvery: d => `${d} günde bir sula`,
@@ -411,6 +438,31 @@ export const TEXT = {
     limitSub: "Ücretsiz kontroller ayın 1'inde yenilenir. Sınırsız kontrol ve takip sunan Yaprak Plus yakında.",
     plan: "Plan", planFree: "Ücretsiz", planPlus: "Plus",
     notifRecheck: n => `${n} bitki takip kontrolü bekliyor.`,
+
+    emptyTitle: "Bahçen boş",
+    emptySub: "İlk bitkini tara. Yaprak adını ve bakımını bulur, sonra ne zaman sulayacağını hatırlatır.",
+    emptyBtn: "İlk bitkimi tara",
+    howTo: "Yaprak nasıl kullanılır",
+    howToSub: "Yaprak'ın neler yaptığını 1 dakikada gör",
+    tipTitle: "Haftanın ipucu", tipForYou: "Senin bitkilerin için",
+    tipNext: "Başka ipucu", tipHide: "Gelecek haftaya kadar gizle",
+    guideSkip: "Geç", guideNext: "İleri", guideStart: "Başla",
+    guideSteps: [
+      { title: "Bitkini tara", body: "Tara → Tanı'ya bas ve yaprakların fotoğrafını çek. Adı, bakımı ve evcil hayvanlara zararlı olup olmadığı gelir. Bahçeme kaydet'e bas." },
+      { title: "Odalarını ekle", body: "Odalar'da her odayı pencere yönü, ışığı ve havasıyla ekle. Sulama ve bakım önerileri bitkinin gerçekte durduğu yere göre ayarlanır." },
+      { title: "Halkalarla sula", body: "Bitkilerim'de mavi halka bir sonraki sulamaya kaç gün kaldığını gösterir. Suladığında Suladım'a bas: Yaprak alışkanlığını öğrenir." },
+      { title: "Bitkin mi hasta?", body: "Kontrol et'e bas, bitkiyi seç ve sorunlu yaprakları çek. Yaprak odasını, sulamanı ve havayı da hesaba katar, 7 gün sonra takip fotoğrafı ister." },
+      { title: "Almadan önce", body: "Fidanlıkta Tara → Almadan önce'yi kullan. Yaprak bitkinin hangi odana uyduğunu, ya da hiçbirine uymadığını söyler." },
+      { title: "Tatile mi gidiyorsun?", body: "Profil → Bitki bakıcısı bağlantısı. Komşuna gönder: neyi ne zaman sulayacağını görür, uygulama gerekmez." },
+    ],
+    myPlants: "Bitkilerim", allPlants: "Tüm bitkilerin",
+    stHealthy: "Sağlıklı", stWater: "Su istiyor", stAttention: "İlgi istiyor",
+    gStatus: "Durum", gNext: "Sonraki sulama",
+    daysUnit: () => "Gün",
+    searchPh: "Bitkilerinde ara", noMatch: "Burada bitki yok.",
+    search: "Ara", addNew: "Bitki ekle",
+    lateShort: d => `${d} gün gecikti`,
+    checkShort: "Kontrol et",
 
     notifTitle: "Yaprak",
     notifBody: n => `${n} bitki bugün su istiyor.`,

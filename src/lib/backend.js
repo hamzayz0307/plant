@@ -54,6 +54,15 @@ function createLocalBackend() {
     try { localStorage.setItem(KEY_, JSON.stringify(db)); }
     catch { throw new Error("storage_full"); }
   };
+  // One-time cleanup: plants saved from demo scan results (before real identification) are not real.
+  if (!db.demoCleaned) {
+    const fake = new Set(["Monstera deliciosa", "Chlorophytum comosum", "Dracaena trifasciata"]);
+    const removed = new Set(db.plants.filter(p => fake.has(p.scientificName)).map(p => p.id));
+    db.plants = db.plants.filter(p => !removed.has(p.id));
+    db.health = db.health.filter(h => !removed.has(h.plantId));
+    db.demoCleaned = true;
+    try { persist(); } catch { /* ignore */ }
+  }
 
   return {
     mode: "local",

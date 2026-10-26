@@ -123,3 +123,21 @@ export function HealthResult({ t, result }) {
     </>
   );
 }
+
+// Circular gauge: value 0–1, colour from a CSS variable.
+export function Ring({ value, color, children, label }) {
+  const r = 30, c = 2 * Math.PI * r;
+  const v = Math.max(0, Math.min(1, value));
+  return (
+    <div className="ring" role="img" aria-label={label}>
+      <svg viewBox="0 0 76 76" aria-hidden="true">
+        <circle cx="38" cy="38" r={r} fill="none" stroke="var(--track)" strokeWidth="7" />
+        {v > 0 && (
+          <circle cx="38" cy="38" r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+            strokeDasharray={`${Math.max(v * c, 0.001)} ${c}`} />
+        )}
+      </svg>
+      <span className="val">{children}</span>
+    </div>
+  );
+}

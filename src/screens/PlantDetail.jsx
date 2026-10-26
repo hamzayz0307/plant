@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../App.jsx";
-import { EXAMPLES, displayName, exampleAsPlant } from "../lib/plants.js";
+import { displayName } from "../lib/plants.js";
 import { roomFit, wateringDays } from "../lib/care.js";
 import { CareGrid, FitPill, Reasons, Safety } from "../components/parts.jsx";
 import * as I from "../components/icons.jsx";
@@ -15,8 +15,7 @@ export function formatDate(ms, lang) {
 export default function PlantDetail({ id }) {
   const { t, lang, plants, rooms, roomOf, statusOf, actions, weather, backend, profile } = useApp();
   const fromStore = plants.find(p => p.id === id);
-  const ex = !fromStore && EXAMPLES.find(e => e.id === id);
-  const p = fromStore || (ex && exampleAsPlant(ex, lang));
+  const p = fromStore;
 
   const [notes, setNotes] = useState(p?.notes || "");
   const [confirm, setConfirm] = useState(false);
@@ -57,13 +56,13 @@ export default function PlantDetail({ id }) {
         {p.photo ? <img src={p.photo} alt={displayName(p)} /> : <I.Leaf size={72} />}
       </div>
       <header className="screen-head">
-        <h1>{displayName(p)}{p.example && <span className="badge">{t("example")}</span>}</h1>
+        <h1>{displayName(p)}</h1>
         {p.nickname && p.commonName && <span className="muted">{p.commonName}</span>}
       </header>
 
       {profile?.petSafe && p.toxicity?.pets && <div className="note bad"><I.Paw />{t("petSafeWarn")}</div>}
 
-      {!p.example && (
+      {(
         <div className="water-card">
           <div>
             <div className="big">{d.text}</div>
@@ -78,14 +77,14 @@ export default function PlantDetail({ id }) {
         <div className="sci latin">{p.scientificName}</div>
         <dl>
           <dt>{t("family")}</dt><dd>{p.family || "—"}</dd>
-          <dt>{t("added")}</dt><dd>{p.example ? "—" : formatDate(p.createdAt, lang)}</dd>
+          <dt>{t("added")}</dt><dd>{formatDate(p.createdAt, lang)}</dd>
           <dt>{t("confidenceLbl")}</dt><dd>{p.confidence != null ? t("matchPct", p.confidence) : "—"}</dd>
           <dt>{t("room")}</dt><dd>{room ? room.name : t("noRoom")}</dd>
         </dl>
       </div>
       {p.description && <p>{p.description}</p>}
 
-      {!p.example && (
+      {(
         <div className="field">
           <label htmlFor="move-room">{t("changeRoom")}</label>
           <select id="move-room" value={p.roomId || ""} onChange={e => moveTo(e.target.value)}>
@@ -108,7 +107,7 @@ export default function PlantDetail({ id }) {
       <h3>{t("safety")}</h3>
       <Safety t={t} plant={p} />
 
-      {!p.example && (
+      {(
         <>
           <h3>{t("healthLog")}</h3>
           {health.length >= 2 && (() => {
