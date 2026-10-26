@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useApp } from "../App.jsx";
-import { EXAMPLES, displayName, exampleAsPlant } from "../lib/plants.js";
+import { displayName } from "../lib/plants.js";
+import { tipsFor, weekKey } from "../lib/tips.js";
 import { roomFit } from "../lib/care.js";
 import { Ring } from "../components/parts.jsx";
 import * as I from "../components/icons.jsx";
@@ -15,7 +16,6 @@ export function dueText(t, s) {
 // healthy | water | attention, plus what the two rings need
 function plantState(p, { statusOf, roomOf, weather }) {
   const s = statusOf(p);
-  if (p.example) return { s: { ...s, daysLeft: p.wateringDays, days: p.wateringDays, due: false }, status: "healthy", attention: false, water: false };
   const room = roomOf(p);
   const fit = room && p.needs ? roomFit(p.needs, room, { weather }) : null;
   const attention = !!p.recheckAt || fit?.verdict === "bad";
@@ -35,8 +35,8 @@ export default function Garden() {
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState("");
 
-  const showExamples = plants.length === 0;
-  const all = (showExamples ? EXAMPLES.map(e => exampleAsPlant(e, lang)) : plants)
+  const empty = plants.length === 0;
+  const all = plants
     .map(p => ({ p, ...plantState(p, { statusOf, roomOf, weather }) }));
   const q = query.trim().toLocaleLowerCase(lang);
   const found = q
@@ -52,20 +52,27 @@ export default function Garden() {
       <header className="plants-head">
         <h1>{t("myPlants")}</h1>
         <div style={{ display: "flex", gap: 4 }}>
-          <button className="icon-btn" aria-label={t("search")} aria-pressed={searching}
-            onClick={() => { setSearching(v => !v); setQuery(""); }}><I.Search /></button>
-          <button className="icon-btn boxed" aria-label={t("addNew")} onClick={() => actions.setTab("scan")}><I.Plus size={20} /></button>
+          {!empty && <button className="icon-btn" aria-label={t("search")} aria-pressed={searching}
+            onClick={() => { setSearching(v => !v); setQuery(""); }}><I.Search /></button>}
+          <button className="icon-btn boxed" aria-label={t("addNew")} onClick={actions.startIdentify}><I.Plus size={20} /></button>
         </div>
       </header>
 
-      {searching && (
+      {searching && !empty && (
         <input className="search" type="search" autoFocus placeholder={t("searchPh")} aria-label={t("searchPh")}
           value={query} onChange={e => setQuery(e.target.value)} />
       )}
 
+      {empty ? (
+        <div className="empty">
+          <span className="empty-art" aria-hidden="true"><I.Leaf size={44} /></span>
+          <h2>{t("emptyTitle")}</h2>
+          <p className="muted">{t("emptySub")}</p>
+          <button className="btn btn-primary" onClick={actions.startIdentify}><I.Scan size={20} />{t("emptyBtn")}</button>
+          <button className="link-btn" onClick={actions.openGuide}>{t("howTo")}</button>
+        </div>
+      ) : <>
       <p className="serif-sub">{t("allPlants")}</p>
-
-      {showExamples && <div className="note"><I.Info /><span>{t("examplesNote")}</span></div>}
 
       <div className="shelf" aria-label={t("allPlants")}>
         {found.map(({ p, status }) => (
@@ -91,7 +98,11 @@ export default function Garden() {
         </div>
         <button className="btn" onClick={() => actions.checkHealthOf(null)}>{t("checkShort")}</button>
       </div>
+      </>}
 
+      <TipCard />
+
+      {!empty && <>
       <div className="pills" role="group" aria-label={t("gStatus")}>
         {["healthy", "water", "attention"].map(f => (
           <button key={f} className="pill" aria-pressed={filter === f} onClick={() => setFilter(v => (v === f ? null : f))}>
@@ -101,7 +112,9 @@ export default function Garden() {
       </div>
 
       {listed.length === 0 && <p className="muted center">{t("noMatch")}</p>}
+      </>}
 
+      {!empty &&
       <ul className="pcards">
         {listed.map(({ p, s, attention, water, recheckDue }) => {
           const daysLeft = Math.max(0, s.daysLeft);
@@ -110,8 +123,7 @@ export default function Garden() {
             <li key={p.id} className="pcard">
               <button className="pcard-photo" onClick={() => actions.openPlant(p.id)}>
                 <Photo plant={p} className="ph" />
-                {p.example && <span className="badge">{t("example")}</span>}
-                {!p.example && profile?.petSafe && p.toxicity?.pets && <span className="badge bad">{t("notPetSafe")}</span>}
+                {profile?.petSafe && p.toxicity?.pets && <span className="badge bad">{t("notPetSafe")}</span>}
                 <span className="nm">{displayName(p)}</span>
               </button>
 
@@ -143,6 +155,35 @@ export default function Garden() {
           );
         })}
       </ul>
+      }
     </section>
+  );
+}
+
+function TipCard() {
+  const { t, lang, plants, roomOf, weather, profile } = useApp();
+  const tips = useMemo(() => tipsFor({ plants, roomOf, weather, profile, lang }), [plants, roomOf, weather, profile, lang]);
+  const week = weekKey();
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem("yaprak.tipHidden") === String(week); } catch { return false; }
+  });
+  const [i, setI] = useState(0);
+  if (hidden || tips.length === 0) return null;
+  const tip = tips[i % tips.length];
+
+  function hide() {
+    setHidden(true);
+    try { localStorage.setItem("yaprak.tipHidden", String(week)); } catch { /* ignore */ }
+  }
+
+  return (
+    <aside className="tip" aria-label={t("tipTitle")}>
+      <div className="tip-head">
+        <span className="tip-label"><I.Sun size={14} />{tip.personal ? t("tipForYou") : t("tipTitle")}</span>
+        <button className="icon-btn sm" aria-label={t("tipHide")} title={t("tipHide")} onClick={hide}><I.X /></button>
+      </div>
+      <p>{tip.text}</p>
+      {tips.length > 1 && <button className="link-btn tip-next" onClick={() => setI(i + 1)}>{t("tipNext")} →</button>}
+    </aside>
   );
 }

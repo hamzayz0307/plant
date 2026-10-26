@@ -173,6 +173,13 @@ export default function Profile() {
         </div>
       )}
 
+      <div className="group">
+        <button className="group-row guide-row" onClick={actions.openGuide}>
+          <span className="t"><b>{t("howTo")}</b><small>{t("howToSub")}</small></span>
+          <span className="chev"><I.Chev /></span>
+        </button>
+      </div>
+
       <p className="muted small center">{t("version")}</p>
     </section>
   );

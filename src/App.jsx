@@ -13,6 +13,7 @@ import Rooms from "./screens/Rooms.jsx";
 import Profile from "./screens/Profile.jsx";
 import { AuthScreen, NewPasswordScreen } from "./screens/Auth.jsx";
 import SitterPage from "./screens/Sitter.jsx";
+import { GuidePage, Onboarding, needsOnboarding } from "./screens/Guide.jsx";
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -68,6 +69,8 @@ function Shell({ user, t, lang, setLang }) {
   const [detailId, setDetailId] = useState(null);
   const [scan, setScan] = useState(EMPTY_SCAN);
   const [toastMsg, setToastMsg] = useState(null);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [onboarding, setOnboarding] = useState(needsOnboarding);
   const [healthUsage, setHealthUsage] = useState(null);
   const toastTimer = useRef();
 
@@ -128,7 +131,7 @@ function Shell({ user, t, lang, setLang }) {
   }, [profile?.reminders, plants.length, dueCount, recheckCount, t]);
 
   const setTab = useCallback(next => {
-    setTabState(next); setDetailId(null);
+    setTabState(next); setDetailId(null); setGuideOpen(false);
     window.scrollTo({ top: 0 });
   }, []);
 
@@ -167,6 +170,12 @@ function Shell({ user, t, lang, setLang }) {
       setScan({ ...EMPTY_SCAN, mode: "health", attachTo: plantId });
       setTab("scan");
     },
+    startIdentify() {
+      setScan({ ...EMPTY_SCAN, mode: "identify" });
+      setTab("scan");
+    },
+    openGuide() { setGuideOpen(true); window.scrollTo({ top: 0 }); },
+    closeGuide() { setGuideOpen(false); window.scrollTo({ top: 0 }); },
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [refresh, toast, setTab, setLang, t]);
 
@@ -174,6 +183,7 @@ function Shell({ user, t, lang, setLang }) {
 
   let screen;
   if (!profile) screen = <div className="splash" style={{ minHeight: "60vh" }}><span className="spinner" /></div>;
+  else if (guideOpen) screen = <GuidePage t={t} onBack={actions.closeGuide} />;
   else if (tab === "garden") screen = detailId ? <PlantDetail id={detailId} /> : <Garden />;
   else if (tab === "scan") screen = <Scan />;
   else if (tab === "rooms") screen = <Rooms />;
@@ -202,6 +212,7 @@ function Shell({ user, t, lang, setLang }) {
         </nav>
       </div>
       {toastMsg && <div className="toast" role="status">{toastMsg}</div>}
+      {onboarding && profile && <Onboarding t={t} onDone={() => setOnboarding(false)} />}
     </AppCtx.Provider>
   );
 }
